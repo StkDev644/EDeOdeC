@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Calendário EDeOdeC 2025</title>
+  <link rel="stylesheet" href="stylish.css">
+</head>
+<body>
+
+<p id="ultimaAlteracao" class="info-msg"></p>
+<button id="btnBaixarConteudo" class="btn-baixar">Baixar conteúdo</button>
+
+<div class="edeodec_container">
+  <h1>EDeOdeC</h1>
+  <img src="img/image__34_-removebg-preview.png" alt="Logo EDeOdeC">
+</div>
+
+<div class="controls">
+  <button onclick="mudarMes(-1)">&laquo; Mês anterior</button>
+  <h2 id="tituloMes"></h2>
+  <button onclick="mudarMes(1)">Próximo mês &raquo;</button>
+</div>
+
+<div class="calendar">
+  <div class="calendar-inner">
+    <div class="day-names">
+      <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+    </div>
+    <div class="day-grid" id="calendar"></div>
+  </div>
+</div>
+
+<p class="info-msg">
+  Este site não foi desenvolvido para ser complexo, mas sim uma ferramenta rápida. Peço a compreensão de todos para que não coloquem frases supérfluas.
+</p>
+
+<script>
+  const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const diasPorMes = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  let mesAtual = 0;
+  const ano = 2025;
+
+  const tituloMes = document.getElementById("tituloMes");
+  const calendario = document.getElementById("calendar");
+
+  function montarCalendario(mes) {
+    calendario.innerHTML = "";
+    tituloMes.textContent = `${nomesMeses[mes]} de ${ano}`;
+
+    const primeiroDia = new Date(ano, mes, 1).getDay();
+    const totalDias = diasPorMes[mes];
+
+    for (let i = 0; i < primeiroDia; i++) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      calendario.appendChild(empty);
+    }
+
+    for (let dia = 1; dia <= totalDias; dia++) {
+      const div = document.createElement("div");
+      div.className = "day";
+      const key = `dia${dia}-mes${mes}-ano${ano}`;
+      const savedNote = localStorage.getItem(key) || "";
+      div.innerHTML = `
+        <strong>${dia}</strong>
+        <textarea oninput="salvar('${key}', this.value)">${savedNote}</textarea>
+      `;
+      calendario.appendChild(div);
+    }
+  }
+
+  function salvar(chave, valor) {
+    localStorage.setItem(chave, valor);
+
+    const agora = new Date();
+    const dataFormatada = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const horaFormatada = agora.toLocaleTimeString('pt-BR');
+    const regex = /dia(\d+)-mes(\d+)-ano(\d+)/;
+    const match = chave.match(regex);
+
+    let dia = "", mesNumero = "";
+    if (match) {
+      dia = parseInt(match[1], 10);
+      mesNumero = parseInt(match[2], 10);
+    }
+
+    const nomesMeses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const mesExtenso = nomesMeses[mesNumero] || "";
+
+    const ultimaAlteracaoObj = {
+      dataHora: `${dataFormatada} às ${horaFormatada}`,
+      dia: dia,
+      mesExtenso: mesExtenso
+    };
+
+    localStorage.setItem('ultimaAlteracao', JSON.stringify(ultimaAlteracaoObj));
+    mostrarUltimaAlteracao();
+  }
+
+  function mostrarUltimaAlteracao() {
+    const p = document.getElementById('ultimaAlteracao');
+    const ultimaStr = localStorage.getItem('ultimaAlteracao');
+
+    if (ultimaStr) {
+      const obj = JSON.parse(ultimaStr);
+      p.textContent = `Última alteração em ${obj.dataHora}. (Em ${obj.mesExtenso} dia ${obj.dia})`;
+    } else {
+      p.textContent = "Nenhuma alteração registrada ainda.";
+    }
+  }
+
+  function mudarMes(direcao) {
+    mesAtual += direcao;
+    if (mesAtual < 0) mesAtual = 11;
+    if (mesAtual > 11) mesAtual = 0;
+    montarCalendario(mesAtual);
+  }
+
+  montarCalendario(mesAtual);
+  mostrarUltimaAlteracao();
+
+  document.getElementById('btnBaixarConteudo').addEventListener('click', () => {
+    let conteudo = "";
+    const nomesMeses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const chave = localStorage.key(i);
+      const regex = /^dia(\d+)-mes(\d+)-ano(\d+)$/;
+
+      if (regex.test(chave)) {
+        const valor = localStorage.getItem(chave).trim();
+        if (valor.length > 0) {
+          const match = chave.match(regex);
+          const dia = parseInt(match[1], 10);
+          const mes = parseInt(match[2], 10);
+          const mesExtenso = nomesMeses[mes];
+          conteudo += `${dia} de ${mesExtenso}: ${valor}\n`;
+        }
+      }
+    }
+
+    if (conteudo === "") {
+      alert("Nenhum conteúdo para baixar.");
+      return;
+    }
+
+    const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conteudo_calendario_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+</script>
+
+<script type="module">
+  import { app } from './firebase-init.js';
+</script>
+
+</body>
+</html>
